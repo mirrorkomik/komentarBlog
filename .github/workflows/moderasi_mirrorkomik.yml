@@ -45,7 +45,7 @@ jobs:
           echo "TITLE=$TITLE"
           
       # -----------------------------
-      - name: Lock Diskusi (Pending)
+      - name: Lock Diskusi (Pending) hanya untuk root comment
         if: ${{ github.event.comment.in_reply_to_id == null }}
         uses: actions/github-script@v7
         with:
@@ -82,7 +82,7 @@ jobs:
           
           # Whitelist user
           for user in $(echo $WHITELIST_USER | tr ',' ' '); do
-            if echo "$AUTHOR" | grep -iq "$user"; then
+            if [ "$AUTHOR_LOWER" = "$user" ]; then
               echo "status=approve" >> $GITHUB_OUTPUT
               exit 0
             fi
@@ -90,7 +90,7 @@ jobs:
 
           # Whitelist kata
           for word in $(echo $WHITELIST_WORDS | tr ',' ' '); do
-            if echo "$COMMENT_LOWER" | grep -iq "$word"; then
+            if echo "$COMMENT_LOWER" | grep -q "$word"; then
               echo "status=approve" >> $GITHUB_OUTPUT
               exit 0
             fi
@@ -98,7 +98,7 @@ jobs:
 
           # Badword → reject
           for bad in $(echo $BADWORDS | tr ',' ' '); do
-            if echo "$COMMENT_LOWER" | grep -iq "$bad"; then
+            if echo "$COMMENT_LOWER" | grep -q "$bad"; then
               echo "status=reject" >> $GITHUB_OUTPUT
               exit 0
             fi
@@ -160,7 +160,7 @@ jobs:
           DISCUSSION_URL="https://github.com/$REPO/discussions/${DISCUSSION_NUMBER}#discussioncomment-${COMMENT_ID}"
 
           # Encode komentar untuk menghindari Markdown error
-          SAFE_COMMENT=$(echo "${COMMENT}" | sed 's/[*_\[\]()~`>#+=|{}.!-]/\\&/g')
+          SAFE_COMMENT=$(echo "$COMMENT" | cut -c1-4000 | sed 's/[*_\[\]()~`>#+=|{}.!-]/\\&/g')
       
           TEXT="🚨 *Moderasi Komentar Baru* 🚨%0A%0A👤 User: ${AUTHOR}%0A📌 Diskusi: ${TITLE}%0A%0A💬 Komentar:%0A${SAFE_COMMENT}%0A%0A"
 
