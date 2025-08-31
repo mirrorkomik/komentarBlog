@@ -1,0 +1,103 @@
+name: Moderasi Komentar Giscus
+
+on:
+  discussion_comment:
+    types: [created]
+
+jobs:
+  moderasi:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Data
+        id: data
+        run: |
+          echo "AUTHOR=${{ github.event.comment.user.login }}" >> $GITHUB_ENV
+          echo "COMMENT=${{ github.event.comment.body }}" >> $GITHUB_ENV
+          echo "DISCUSSION_NUMBER=${{ github.event.discussion.number }}" >> $GITHUB_ENV
+          echo "COMMENT_ID=${{ github.event.comment.id }}" >> $GITHUB_ENV
+          echo "TITLE=${{ github.event.discussion.title }}" >> $GITHUB_ENV
+
+      - name: Lock Diskusi (Pending)
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.discussions.lock({
+              discussion_number: context.payload.discussion.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              lock_reason: "pending moderation"
+            });
+
+      - name: Filter Moderasi
+        id: filter
+        run: |
+          WHITELIST_USER="adminuser1,adminuser2"
+          WHITELIST_WORDS="mantap,terima kasih,approved"
+          BADWORDS="anjing,bangsat,kontol,idiot"
+
+          if echo "$WHITELIST_USER" | grep -iq "$AUTHOR"; then
+            echo "status=approve" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          for word in $(echo $WHITELIST_WORDS | tr ',' ' '); do
+            if echo "$COMMENT" | grep -iq "$word"; then
+              echo "status=approve" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+          done
+
+          for bad in $(echo $BADWORDS | tr ',' ' '); do
+            if echo "$COMMENT" | grep -iq "$bad"; then
+              echo "status=reject" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+          done
+
+          echo "status=pending" >> $GITHUB_OUTPUT
+
+      - name: Auto Approve
+        if: steps.filter.outputs.status == 'approve'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.discussions.unlock({
+              discussion_number: context.payload.discussion.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+
+      - name: Auto Delete
+        if: steps.filter.outputs.status == 'reject'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.discussionComments.deleteComment({
+              discussion_comment_id: context.payload.comment.id,
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+
+      - name: Kirim Telegram (Pending)
+        if: steps.filter.outputs.status == 'pending'
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          REPO="${{ github.repository }}"
+          DISCUSSION_URL="https://github.com/$REPO/discussions/${DISCUSSION_NUMBER}#discussioncomment-${COMMENT_ID}"
+
+          TEXT="🚨 *Moderasi Komentar Baru* 🚨%0A%0A👤 User: ${AUTHOR}%0A📌 Diskusi: ${TITLE}%0A%0A💬 Komentar:%0A${COMMENT}%0A%0A"
+
+          # Inline button JSON
+          BUTTONS=$(jq -nc --arg approve "Approve" \
+                           --arg reject "Delete" \
+                           --arg urlApprove "$DISCUSSION_URL" \
+                           --arg urlReject "https://api.github.com/repos/$REPO/discussion_comments/${COMMENT_ID}" \
+                           '[[{"text":$approve,"url":$urlApprove},{"text":$reject,"url":$urlReject}]]')
+
+          curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
+            -d chat_id="$TELEGRAM_CHAT_ID" \
+            -d parse_mode="Markdown" \
+            -d text="$TEXT" \
+            -d reply_markup="{\"inline_keyboard\":$BUTTONS}"
