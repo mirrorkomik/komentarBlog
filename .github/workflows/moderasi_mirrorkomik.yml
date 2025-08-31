@@ -211,7 +211,9 @@ jobs:
           ACTION_APPROVE="approve_${COMMENT_ID}"
           ACTION_DELETE="delete_${COMMENT_ID}"
 
-          # Inline button JSON (aman via jq)
+          # Inline button JSON (aman via jq),
+          # Aing              {"text":$approve,"callback_data": ($webhook + "?data=" + $action_approve)},
+          # Maung             {"text":$reject,"callback_data": ($webhook + "?data=" + $action_delete)}
           BUTTONS=$(jq -nc --arg moderat "✅ Detail" \
                            --arg approve "✅ Approve" \
                            --arg reject "❌ Delete" \
@@ -221,9 +223,7 @@ jobs:
                            --arg urlApprove "$DISCUSSION_URL" \
                            '[
                              [
-                               {"text":$moderat,"url":$urlApprove},
-           # Aing              {"text":$approve,"callback_data": ($webhook + "?data=" + $action_approve)},
-           # Maung             {"text":$reject,"callback_data": ($webhook + "?data=" + $action_delete)}
+                               {"text":$moderat,"url":$urlApprove}
                              ]
                            ]')
 
