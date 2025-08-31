@@ -21,12 +21,21 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            await github.rest.discussions.lock({
-              discussion_number: context.payload.discussion.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              lock_reason: "pending moderation"
-            });
+            // Cek apakah discussion ada (root comment)
+            if (context.payload.discussion) {
+                console.log("Locking discussion #"+context.payload.discussion.number);
+                await github.rest.discussions.lock({
+                    discussion_number: context.payload.discussion.number,
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    lock_reason: "pending moderation"
+                });
+            } else if (context.payload.comment.in_reply_to_id) {
+                // Reply comment → ambil discussion number dari parent comment
+                console.log("Reply comment detected, skipping lock");
+            } else {
+                console.log("No discussion info found");
+            }
 
       - name: Filter Moderasi
         id: filter
@@ -61,22 +70,30 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            await github.rest.discussions.unlock({
-              discussion_number: context.payload.discussion.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo
-            });
+            if (context.payload.discussion) {
+                await github.rest.discussions.unlock({
+                    discussion_number: context.payload.discussion.number,
+                    owner: context.repo.owner,
+                    repo: context.repo.repo
+                });
+            } else {
+                console.log("Reply comment, skipping unlock");
+            }
 
       - name: Auto Delete
         if: steps.filter.outputs.status == 'reject'
         uses: actions/github-script@v7
         with:
           script: |
-            await github.rest.discussionComments.deleteComment({
-              discussion_comment_id: context.payload.comment.id,
-              owner: context.repo.owner,
-              repo: context.repo.repo
-            });
+            if (context.payload.comment.id) {
+                await github.rest.discussionComments.deleteComment({
+                    discussion_comment_id: context.payload.comment.id,
+                    owner: context.repo.owner,
+                    repo: context.repo.repo
+                });
+            } else {
+                console.log("No comment id, cannot delete");
+            }
 
       - name: Kirim Telegram (Pending)
         if: steps.filter.outputs.status == 'pending'
