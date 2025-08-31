@@ -60,12 +60,13 @@ jobs:
             if (!isNaN(discussion_number)) {
               console.log(`Locking discussion #${discussion_number}`);
               try {
-                await github.rest.discussions.lock({
+                await github.request('POST /repos/{owner}/{repo}/discussions/{discussion_number}/lock', {
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   discussion_number,
-                  lock_reason: "pending moderation"
+                  lock_reason: 'pending moderation'
                 });
+                console.log("Discussion locked successfully");
               } catch (error) {
                 console.log("Lock failed:", error.message);
               }
