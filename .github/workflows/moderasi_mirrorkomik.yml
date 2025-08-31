@@ -8,6 +8,7 @@ jobs:
   moderasi:
     runs-on: ubuntu-latest
     steps:
+      # -----------------------------
       - name: Setup Data
         id: data
         run: |
@@ -15,17 +16,18 @@ jobs:
           echo "COMMENT=${{ github.event.comment.body }}" >> $GITHUB_ENV
           echo "COMMENT_ID=${{ github.event.comment.id }}" >> $GITHUB_ENV
       
-          # DISCUSSION_NUMBER
+          # Tentukan DISCUSSION_NUMBER
           if [ "${{ github.event.discussion.number }}" != "" ]; then
+            # Root comment
             echo "DISCUSSION_NUMBER=${{ github.event.discussion.number }}" >> $GITHUB_ENV
           else
-            # Reply → ambil parent discussion number
+            # Reply → ambil parent comment
             PARENT_ID="${{ github.event.comment.in_reply_to_id }}"
             DISCUSSION_NUMBER=$(gh api repos/${{ github.repository }}/discussion_comments/$PARENT_ID | jq -r '.discussion_url' | sed 's|.*/discussions/||')
             echo "DISCUSSION_NUMBER=$DISCUSSION_NUMBER" >> $GITHUB_ENV
           fi
-      
-          # Ambil TITLE
+
+          # Tentukan TITLE
           if [ "${{ github.event.discussion.title }}" != "" ]; then
             echo "TITLE=${{ github.event.discussion.title }}" >> $GITHUB_ENV
           else
@@ -33,6 +35,7 @@ jobs:
             echo "TITLE=$TITLE" >> $GITHUB_ENV
           fi
 
+      # -----------------------------
       - name: Debug Variables
         run: |
           echo "AUTHOR=$AUTHOR"
@@ -40,39 +43,37 @@ jobs:
           echo "DISCUSSION_NUMBER=$DISCUSSION_NUMBER"
           echo "COMMENT_ID=$COMMENT_ID"
           echo "TITLE=$TITLE"
-
-      - name: Lock Diskusi (Pending)
+          
+      # -----------------------------
+      - name: Lock Root Discussion (Pending)
+        if: github.event.discussion != null
         uses: actions/github-script@v7
         with:
           script: |
-            // Cek apakah discussion ada (root comment)
-            if (context.payload.discussion) {
-                console.log("Locking discussion #"+context.payload.discussion.number);
-                await github.rest.discussions.lock({
-                    discussion_number: context.payload.discussion.number,
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    lock_reason: "pending moderation"
-                });
-            } else if (context.payload.comment.in_reply_to_id) {
-                // Reply comment → ambil discussion number dari parent comment
-                console.log("Reply comment detected, skipping lock");
-            } else {
-                console.log("No discussion info found");
-            }
+            console.log("Locking discussion #"+context.payload.discussion.number);
+            await github.rest.discussions.lock({
+                discussion_number: context.payload.discussion.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                lock_reason: "pending moderation"
+            });
 
+      # -----------------------------
       - name: Filter Moderasi
         id: filter
         run: |
+          # Daftar whitelist user & kata
           WHITELIST_USER="adminuser1,adminuser2"
           WHITELIST_WORDS="mantap,terima kasih,approved"
           BADWORDS="anjing,bangsat,kontol,idiot"
 
+          # Whitelist user
           if echo "$WHITELIST_USER" | grep -iq "$AUTHOR"; then
             echo "status=approve" >> $GITHUB_OUTPUT
             exit 0
           fi
 
+          # Whitelist kata
           for word in $(echo $WHITELIST_WORDS | tr ',' ' '); do
             if echo "$COMMENT" | grep -iq "$word"; then
               echo "status=approve" >> $GITHUB_OUTPUT
@@ -80,6 +81,7 @@ jobs:
             fi
           done
 
+          # Badword → reject
           for bad in $(echo $BADWORDS | tr ',' ' '); do
             if echo "$COMMENT" | grep -iq "$bad"; then
               echo "status=reject" >> $GITHUB_OUTPUT
@@ -87,24 +89,29 @@ jobs:
             fi
           done
 
+          # Default: pending
           echo "status=pending" >> $GITHUB_OUTPUT
 
-      - name: Auto Approve
+      # -----------------------------
+      - name: Auto Approve (Root Comment Only)
         if: steps.filter.outputs.status == 'approve'
         uses: actions/github-script@v7
         with:
           script: |
             if (context.payload.discussion) {
+                // Root comment → unlock
                 await github.rest.discussions.unlock({
                     discussion_number: context.payload.discussion.number,
                     owner: context.repo.owner,
                     repo: context.repo.repo
                 });
             } else {
+                // Reply comment → skip unlock
                 console.log("Reply comment, skipping unlock");
             }
 
-      - name: Auto Delete
+      # -----------------------------
+      - name: Auto Delete (Semua Comment)
         if: steps.filter.outputs.status == 'reject'
         uses: actions/github-script@v7
         with:
@@ -119,6 +126,7 @@ jobs:
                 console.log("No comment id, cannot delete");
             }
 
+      # -----------------------------
       - name: Kirim Telegram (Pending)
         if: steps.filter.outputs.status == 'pending'
         env:
