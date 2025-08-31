@@ -123,9 +123,14 @@ jobs:
         with:
           script: |
             const discussion_number = parseInt(process.env.DISCUSSION_NUMBER);
-            if (!isNaN(discussion_number)) {
-              // Root comment → unlock
-              console.log(`Unlocking discussion #${discussion_number}`);
+            const commenter = github.event.comment.user.login.toLowerCase();
+            const whitelist = (process.env.WHITELIST_USER || "").split(',').map(u => u.trim());
+
+            // Cek whitelist
+            if (!whitelist.includes(commenter)) {
+              console.log(`User '${commenter}' not in whitelist → skipping auto approve`);
+            } else if (!isNaN(discussion_number)) {
+              console.log(`User '${commenter}' is whitelisted → unlocking discussion #${discussion_number}`);
               try {
                 await github.rest.discussions.unlock({
                   discussion_number: discussion_number,
@@ -133,10 +138,9 @@ jobs:
                   repo: context.repo.repo
                 });
               } catch (error) {
-                  console.log("Auto approve failed:", error.message);
+                console.log("Auto approve failed:", error.message);
               }
             } else {
-              // Reply comment → skip unlock
               console.log("No valid discussion_number, skipping unlock");
             }
 
@@ -156,6 +160,35 @@ jobs:
               });
             } else {
               console.log("No valid comment_id, cannot delete");
+            }
+            
+      # -----------------------------
+      - name: Auto Hide Reply Comments
+        if: github.event.comment.in_reply_to_id != null
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const comment_id = parseInt(process.env.COMMENT_ID);
+            const commenter = github.event.comment.user.login.toLowerCase();
+            const whitelist = (process.env.WHITELIST_USER || "").split(',').map(u => u.trim());
+            
+            if (isNaN(comment_id)) {
+              console.log("No valid comment_id, cannot hide");
+            } else if (whitelist.includes(commenter)) {
+              console.log(`User '${commenter}' in whitelist → not hiding reply`);
+            } else {
+              console.log(`Hiding reply comment ID ${comment_id} from user '${commenter}'`);
+              try {
+                await github.rest.discussions.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  discussion_comment_id: comment_id,
+                  body: github.event.comment.body,
+                  hidden: true
+                });
+              } catch (error) {
+                console.log("Auto hide failed:", error.message);
+              }
             }
 
       # -----------------------------
