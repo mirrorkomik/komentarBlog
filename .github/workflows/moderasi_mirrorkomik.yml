@@ -177,32 +177,30 @@ jobs:
           # Fungsi escape MarkdownV2
           escape_md_v2() {
             local text="$1"
-            text="${text//\\/\\\\}"   # escape backslash
-            text="${text//_/\\_}"     # escape underscore
-            text="${text//*/\\*}"     # escape asterisk
-            text="${text//[/\\[}"     # escape [
-            text="${text//]/\\]}"     # escape ]
-            text="${text//(/\\(}"     # escape (
-            text="${text//)/\\)}"     # escape )
-            text="${text//~/\\~}"     # escape tilde
-            text="${text//`/\\`}"     # escape backtick
-            text="${text//>/\\>}"     # escape >
-            text="${text//#/\\#}"     # escape #
-            text="${text//+/\\+}"     # escape +
-            text="${text//-/\\-}"     # escape -
-            text="${text//= /\\=}"    # escape =
-            text="${text//|/\\|}"     # escape |
-            text="${text//{/\\{}"     # escape {
-            text="${text//}/\\}}"     # escape }
-            text="${text//./\\.}"     # escape .
-            text="${text//!/\\!}"     # escape !
+            text="${text//\\/\\\\}"   # \
+            text="${text//_/\\_}"     # _
+            text="${text//*/\\*}"     # *
+            text="${text//[/\\[}"     # [
+            text="${text//]/\\]}"     # ]
+            text="${text//(/\\(}"     # (
+            text="${text//)/\\)}"     # )
+            text="${text//~/\\~}"     # ~
+            text="${text//`/\\`}"     # `
+            text="${text//>/\\>}"     # >
+            text="${text//#/\\#}"     # #
+            text="${text//+/\\+}"     # +
+            text="${text//-/\\-}"     # -
+            text="${text//|/\\|}"     # |
+            text="${text//!/\\!}"     # !
+            text="${text//./\\.}"     # .
             echo "$text"
           }
       
+          NL=$'\n'
+          
           # Apply escape
           SAFE_COMMENT=$(escape_md_v2 "$COMMENT_TRIMMED")
 
-          NL=$'\n'
           TEXT="🚨 *Moderasi Komentar Baru* 🚨${NL}${NL}👤 User: ${AUTHOR}${NL}📌 Diskusi: ${TITLE}${NL}${NL}💬 Komentar:${NL}${SAFE_COMMENT}"
 
           # Buat URL reject sepenuhnya di Bash
