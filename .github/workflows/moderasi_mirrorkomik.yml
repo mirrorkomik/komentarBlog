@@ -206,19 +206,24 @@ jobs:
 
           NL=$'\n'
           TEXT="🚨 *Moderasi Komentar Baru* 🚨${NL}${NL}👤 User: ${AUTHOR}${NL}📌 Diskusi: ${TITLE}${NL}${NL}💬 Komentar:${NL}${SAFE_COMMENT}"
+                    
+          # generate unique action key
+          ACTION_APPROVE="approve_${COMMENT_ID}"
+          ACTION_DELETE="delete_${COMMENT_ID}"
 
           # Inline button JSON (aman via jq)
           BUTTONS=$(jq -nc --arg moderat "✅ Detail" \
                            --arg approve "✅ Approve" \
                            --arg reject "❌ Delete" \
                            --arg webhook "$WEBHOOK_URL" \
-                           --argjson comment_id "$COMMENT_ID" \
+                           --arg action_approve "$ACTION_APPROVE" \
+                           --arg action_delete "$ACTION_DELETE" \
                            --arg urlApprove "$DISCUSSION_URL" \
                            '[
                              [
                                {"text":$moderat,"url":$urlApprove},
-                               {"text":$approve,"callback_data": ($webhook + "?" + "{\"comment_id\":" + ($comment_id|tostring) + ",\"action\":\"approve\"}")},
-                               {"text":$reject,"callback_data": ($webhook + "?" + "{\"comment_id\":" + ($comment_id|tostring) + ",\"action\":\"delete\"}")}
+                               {"text":$approve,"callback_data": ($webhook + "?data=" + $action_approve)},
+                               {"text":$reject,"callback_data": ($webhook + "?data=" + $action_delete)}
                              ]
                            ]')
 
