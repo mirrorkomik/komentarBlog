@@ -1,44 +1,33 @@
 name: Moderasi Manual
 
 on:
-  discussion_comment:
-    types: [created]
-
-permissions:
-  discussions: write
+  workflow_dispatch:
+    inputs:
+      comment_id:
+        description: 'ID komentar'
+        required: true
+      action:
+        description: 'approve atau delete'
+        required: true
 
 jobs:
-  detect:
+  process:
     runs-on: ubuntu-latest
     steps:
-      - name: Check Discussion Comment for Moderation
+      - name: Delete Comment
+        if: ${{ github.event.inputs.action == 'delete' }}
         uses: actions/github-script@v7
         with:
           script: |
-            const commentBody = context.payload.comment.body;
-            const matchDelete = commentBody.match(/DELETE:(\d+)/i);
-            const matchApprove = commentBody.match(/APPROVE:(\d+)/i);
+            await github.rest.discussionComments.deleteComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              discussion_comment_id: parseInt("${{ github.event.inputs.comment_id }}")
+            });
 
-            if(matchDelete) {
-              const comment_id = parseInt(matchDelete[1]);
-              console.log(`Detected DELETE on comment ID: ${comment_id}`);
-
-              // Hapus komentar di discussion
-              await github.rest.discussions.deleteComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                discussion_comment_id: comment_id
-              });
-
-            } else if(matchApprove) {
-              const comment_id = parseInt(matchApprove[1]);
-              console.log(`Detected APPROVE on comment ID: ${comment_id}`);
-
-              // Catat approve, bisa notify Telegram atau log saja
-              console.log(`Comment approved: ${comment_id}`);
-            } else {
-              console.log("No moderation command found in this discussion comment.");
-            }
+      - name: Approve Comment
+        if: ${{ github.event.inputs.action == 'approve' }}
+        uses: actions/github-script@v7
         with:
           script: |
             // Jika perlu unlock discussion atau catat approve
