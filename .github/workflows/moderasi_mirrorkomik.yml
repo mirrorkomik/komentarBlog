@@ -87,7 +87,10 @@ jobs:
           REPO="${{ github.repository }}"
           DISCUSSION_URL="https://github.com/$REPO/discussions/${DISCUSSION_NUMBER}#discussioncomment-${COMMENT_ID}"
 
-          TEXT="🚨 *Moderasi Komentar Baru* 🚨%0A%0A👤 User: ${AUTHOR}%0A📌 Diskusi: ${TITLE}%0A%0A💬 Komentar:%0A${COMMENT}%0A%0A"
+          # Encode komentar untuk menghindari Markdown error
+          SAFE_COMMENT=$(echo "${COMMENT}" | sed 's/[*_\[\]()~`>#+=|{}.!-]/\\&/g')
+      
+          TEXT="🚨 *Moderasi Komentar Baru* 🚨%0A%0A👤 User: ${AUTHOR}%0A📌 Diskusi: ${TITLE}%0A%0A💬 Komentar:%0A${SAFE_COMMENT}%0A%0A"
 
           # Inline button JSON
           BUTTONS=$(jq -nc --arg approve "Approve" \
