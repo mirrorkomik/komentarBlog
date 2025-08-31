@@ -12,8 +12,18 @@ jobs:
       - name: Setup Data
         id: data
         run: |
+          # Simpan AUTHOR
           echo "AUTHOR=${{ github.event.comment.user.login }}" >> $GITHUB_ENV
-          echo "COMMENT=${{ github.event.comment.body }}" >> $GITHUB_ENV
+
+          # Encode komentar ke base64 (aman untuk multiline)
+          COMMENT_BASE64=$(echo "${{ github.event.comment.body }}" | base64 -w0)
+          echo "COMMENT_BASE64=$COMMENT_BASE64" >> $GITHUB_ENV
+
+          # Decode COMMENT untuk dipakai di step selanjutnya
+          COMMENT=$(echo "$COMMENT_BASE64" | base64 --decode)
+          echo "COMMENT=$COMMENT" >> $GITHUB_ENV
+
+          # COMMENT_ID
           echo "COMMENT_ID=${{ github.event.comment.id }}" >> $GITHUB_ENV
       
           # Tentukan DISCUSSION_NUMBER
@@ -71,6 +81,9 @@ jobs:
       - name: Filter Moderasi
         id: filter
         run: |
+          # Decode COMMENT dulu supaya bisa dipakai filter
+          COMMENT=$(echo "$COMMENT_BASE64" | base64 --decode)
+          
           # Daftar whitelist user & kata
           WHITELIST_USER="adminuser1,adminuser2"
           WHITELIST_WORDS="mantap,terima kasih,approved"
@@ -156,6 +169,9 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
+          # Decode COMMENT sebelum dikirim
+          COMMENT=$(echo "$COMMENT_BASE64" | base64 --decode)
+          
           REPO="${{ github.repository }}"
           DISCUSSION_URL="https://github.com/$REPO/discussions/${DISCUSSION_NUMBER}#discussioncomment-${COMMENT_ID}"
 
