@@ -174,7 +174,7 @@ jobs:
           URL_REJECT="https://github.com/$REPO/actions/workflows/moderasi_manual.yml/dispatches?comment_id=$COMMENT_ID&action=delete"
           
           # Escape MarkdownV2 via Python
-          SAFE_COMMENT=$(echo "$COMMENT_TRIMMED" | python3 -c "import sys; text=sys.stdin.read(); for c in r'_ * []()~\`>#+-=|{}.!$': text = text.replace(c,'\\'+c); print(text)")
+          SAFE_COMMENT=$(echo "$COMMENT_TRIMMED" | python3 -c "import sys; text=sys.stdin.read(); [text:=text.replace(c,'\\'+c) for c in r'_ * []()~`>#+-=|{}.!$']; print(text)")
 
           NL=$'\n'
           TEXT="🚨 *Moderasi Komentar Baru* 🚨${NL}${NL}👤 User: ${AUTHOR}${NL}📌 Diskusi: ${TITLE}${NL}${NL}💬 Komentar:${NL}${SAFE_COMMENT}"
