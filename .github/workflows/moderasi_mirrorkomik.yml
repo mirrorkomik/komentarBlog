@@ -165,48 +165,27 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          REPO="${{ github.repository }}"
-          DISCUSSION_URL="https://github.com/$REPO/discussions/${DISCUSSION_NUMBER}#discussioncomment-${COMMENT_ID}"
-
-          # Escape MarkdownV2 Telegram
-          escape_md_v2() {
-            local text="$1"
-            text="${text//\\/\\\\}"
-            text="${text//_/\\_}"
-            text="${text//*/\\*}"
-            text="${text//[/\\[}"
-            text="${text//]/\\]}"
-            text="${text//(/\\(}"
-            text="${text//)/\\)}"
-            text="${text//~/\\~}"
-            text="${text//`/\\`}"
-            text="${text//>/\\>}"
-            text="${text//#/\\#}"
-            text="${text//+/\\+}"
-            text="${text//-/\\-}"
-            text="${text//=/\\=}"
-            text="${text//|/\\|}"
-            text="${text//!/\\!}"
-            text="${text//./\\.}"
-            text="${text//\$/\\$}"
-            text="${text//{/\\{}"
-            text="${text//}/\\}}"
-            echo "$text"
-          }
-      
           # Ambil maksimal 4000 karakter
           COMMENT=$(echo "$COMMENT_BASE64" | base64 --decode)
           COMMENT_TRIMMED=$(echo "$COMMENT" | cut -c1-4000)
 
-          # Apply escape
-          SAFE_COMMENT=$(escape_md_v2 "$COMMENT_TRIMMED")
+          REPO="${{ github.repository }}"
+          DISCUSSION_URL="https://github.com/$REPO/discussions/${DISCUSSION_NUMBER}#discussioncomment-${COMMENT_ID}"
+          URL_REJECT="https://github.com/$REPO/actions/workflows/moderasi_manual.yml/dispatches?comment_id=$COMMENT_ID&action=delete"
+          
+          # Escape MarkdownV2 via Python
+          SAFE_COMMENT=$(python3 - <<'PYTHON_END'
+import sys
+text = sys.stdin.read()
+for c in r'_ * [ ] ( ) ~ ` > # + - = | { } . ! $':
+    text = text.replace(c, '\\' + c)
+print(text)
+PYTHON_END
+<<<"$COMMENT_TRIMMED")
 
           NL=$'\n'
           TEXT="🚨 *Moderasi Komentar Baru* 🚨${NL}${NL}👤 User: ${AUTHOR}${NL}📌 Diskusi: ${TITLE}${NL}${NL}💬 Komentar:${NL}${SAFE_COMMENT}"
 
-          # Buat URL reject sepenuhnya di Bash
-          URL_REJECT="https://github.com/$REPO/actions/workflows/moderasi_manual.yml/dispatches?comment_id=$COMMENT_ID&action=delete"
-          
           # Inline button JSON (aman via jq)
           BUTTONS=$(jq -nc --arg approve "✅ Approve" \
                            --arg reject "❌ Delete" \
