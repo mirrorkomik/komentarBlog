@@ -174,8 +174,33 @@ jobs:
           # Ambil maksimal 4000 karakter
           COMMENT_TRIMMED=$(echo "$COMMENT" | cut -c1-4000)
           
-          # Escape karakter spesial Markdown secara manual
-          SAFE_COMMENT=$(echo "$COMMENT_TRIMMED" | sed 's/\[/\\[/g; s/\]/\\]/g')
+          # Fungsi escape MarkdownV2
+          escape_md_v2() {
+            local text="$1"
+            text="${text//\\/\\\\}"   # escape backslash
+            text="${text//_/\\_}"     # escape underscore
+            text="${text//*/\\*}"     # escape asterisk
+            text="${text//[/\\[}"     # escape [
+            text="${text//]/\\]}"     # escape ]
+            text="${text//(/\\(}"     # escape (
+            text="${text//)/\\)}"     # escape )
+            text="${text//~/\\~}"     # escape tilde
+            text="${text//`/\\`}"     # escape backtick
+            text="${text//>/\\>}"     # escape >
+            text="${text//#/\\#}"     # escape #
+            text="${text//+/\\+}"     # escape +
+            text="${text//-/\\-}"     # escape -
+            text="${text//= /\\=}"    # escape =
+            text="${text//|/\\|}"     # escape |
+            text="${text//{/\\{}"     # escape {
+            text="${text//}/\\}}"     # escape }
+            text="${text//./\\.}"     # escape .
+            text="${text//!/\\!}"     # escape !
+            echo "$text"
+          }
+      
+          # Apply escape
+          SAFE_COMMENT=$(escape_md_v2 "$COMMENT_TRIMMED")
 
           NL=$'\n'
           TEXT="🚨 *Moderasi Komentar Baru* 🚨${NL}${NL}👤 User: ${AUTHOR}${NL}📌 Diskusi: ${TITLE}${NL}${NL}💬 Komentar:${NL}${SAFE_COMMENT}"
@@ -192,7 +217,7 @@ jobs:
 
           curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
             -d chat_id="$TELEGRAM_CHAT_ID" \
-            -d parse_mode="Markdown" \
+            -d parse_mode="MarkdownV2" \
             --data-urlencode "text=$TEXT" \
             --data-urlencode "reply_markup={\"inline_keyboard\":$BUTTONS}"
             
