@@ -13,9 +13,33 @@ jobs:
         run: |
           echo "AUTHOR=${{ github.event.comment.user.login }}" >> $GITHUB_ENV
           echo "COMMENT=${{ github.event.comment.body }}" >> $GITHUB_ENV
-          echo "DISCUSSION_NUMBER=${{ github.event.discussion.number }}" >> $GITHUB_ENV
           echo "COMMENT_ID=${{ github.event.comment.id }}" >> $GITHUB_ENV
-          echo "TITLE=${{ github.event.discussion.title }}" >> $GITHUB_ENV
+      
+          # DISCUSSION_NUMBER
+          if [ "${{ github.event.discussion.number }}" != "" ]; then
+            echo "DISCUSSION_NUMBER=${{ github.event.discussion.number }}" >> $GITHUB_ENV
+          else
+            # Reply → ambil parent discussion number
+            PARENT_ID="${{ github.event.comment.in_reply_to_id }}"
+            DISCUSSION_NUMBER=$(gh api repos/${{ github.repository }}/discussion_comments/$PARENT_ID | jq -r '.discussion_url' | sed 's|.*/discussions/||')
+            echo "DISCUSSION_NUMBER=$DISCUSSION_NUMBER" >> $GITHUB_ENV
+          fi
+      
+          # Ambil TITLE
+          if [ "${{ github.event.discussion.title }}" != "" ]; then
+            echo "TITLE=${{ github.event.discussion.title }}" >> $GITHUB_ENV
+          else
+            TITLE=$(gh api repos/${{ github.repository }}/discussions/$DISCUSSION_NUMBER | jq -r '.title')
+            echo "TITLE=$TITLE" >> $GITHUB_ENV
+          fi
+
+      - name: Debug Variables
+        run: |
+          echo "AUTHOR=$AUTHOR"
+          echo "COMMENT=$COMMENT"
+          echo "DISCUSSION_NUMBER=$DISCUSSION_NUMBER"
+          echo "COMMENT_ID=$COMMENT_ID"
+          echo "TITLE=$TITLE"
 
       - name: Lock Diskusi (Pending)
         uses: actions/github-script@v7
