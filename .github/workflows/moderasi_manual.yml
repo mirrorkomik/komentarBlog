@@ -1,0 +1,34 @@
+name: Moderasi Manual
+
+on:
+  workflow_dispatch:
+    inputs:
+      comment_id:
+        description: 'ID komentar'
+        required: true
+      action:
+        description: 'approve atau delete'
+        required: true
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete Comment
+        if: ${{ github.event.inputs.action == 'delete' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.discussionComments.deleteComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              discussion_comment_id: parseInt("${{ github.event.inputs.comment_id }}")
+            });
+
+      - name: Approve Comment
+        if: ${{ github.event.inputs.action == 'approve' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Jika perlu unlock discussion atau catat approve
+            console.log("Comment approved: ${{ github.event.inputs.comment_id }}");
