@@ -161,10 +161,28 @@ jobs:
 
           # Ambil maksimal 4000 karakter
           COMMENT_TRIMMED=$(echo "$COMMENT" | cut -c1-4000)
-
-          # Escape untuk MarkdownV2 Telegram
-          SAFE_COMMENT=$(jq -Rn --arg text "$COMMENT_TRIMMED" '$text | gsub("([_\\*\\[\\]\\(\\)~`>#+=|{}.!-])"; "\\\\\1")')
-
+          
+          # Escape karakter spesial MarkdownV2 secara manual
+          SAFE_COMMENT=$(echo "$COMMENT_TRIMMED" | sed -e 's/\\/\\\\/g' \
+                                                      -e 's/_/\\_/g' \
+                                                      -e 's/\*/\\*/g' \
+                                                      -e 's/\[/\\[/g' \
+                                                      -e 's/\]/\\]/g' \
+                                                      -e 's/(/\\(/g' \
+                                                      -e 's/)/\\)/g' \
+                                                      -e 's/~ /\\~/g' \
+                                                      -e 's/`/\\`/g' \
+                                                      -e 's/>/\\>/g' \
+                                                      -e 's/#/\\#/g' \
+                                                      -e 's/\+/\\+/g' \
+                                                      -e 's/-/\\-/g' \
+                                                      -e 's/=/\\=/g' \
+                                                      -e 's/|/\\|/g' \
+                                                      -e 's/{/\\{/g' \
+                                                      -e 's/}/\\}/g' \
+                                                      -e 's/\./\\./g' \
+                                                      -e 's/!/\\!/g')
+          
           TEXT="🚨 *Moderasi Komentar Baru* 🚨\n\n👤 User: ${AUTHOR}\n📌 Diskusi: ${TITLE}\n\n💬 Komentar:\n${SAFE_COMMENT}"
 
           # Inline button JSON (aman via jq)
