@@ -186,11 +186,14 @@ jobs:
           NL=$'\n'
           TEXT="🚨 *Moderasi Komentar Baru* 🚨${NL}${NL}👤 User: ${AUTHOR}${NL}📌 Diskusi: ${TITLE}${NL}${NL}💬 Komentar:${NL}${SAFE_COMMENT}"
 
+          # Buat URL reject sepenuhnya di Bash
+          URL_REJECT="https://github.com/$REPO/actions/workflows/moderasi_manual.yml/dispatches?comment_id=$COMMENT_ID&action=delete"
+          
           # Inline button JSON (aman via jq)
           BUTTONS=$(jq -nc --arg approve "✅ Approve" \
                            --arg reject "❌ Delete" \
                            --arg urlApprove "$DISCUSSION_URL" \
-                           --arg urlReject "https://api.github.com/repos/$REPO/discussion_comments/${COMMENT_ID}" \
+                           --arg urlReject "$URL_REJECT" \
                            '[[{"text":$approve,"url":$urlApprove},{"text":$reject,"url":$urlReject}]]')
 
           curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
