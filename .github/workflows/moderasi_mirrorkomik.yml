@@ -92,9 +92,9 @@ jobs:
       
           TEXT="🚨 *Moderasi Komentar Baru* 🚨%0A%0A👤 User: ${AUTHOR}%0A📌 Diskusi: ${TITLE}%0A%0A💬 Komentar:%0A${SAFE_COMMENT}%0A%0A"
 
-          # Inline button JSON
-          BUTTONS=$(jq -nc --arg approve "Approve" \
-                           --arg reject "Delete" \
+          # Inline button JSON (aman via jq)
+          BUTTONS=$(jq -nc --arg approve "✅ Approve" \
+                           --arg reject "❌ Delete" \
                            --arg urlApprove "$DISCUSSION_URL" \
                            --arg urlReject "https://api.github.com/repos/$REPO/discussion_comments/${COMMENT_ID}" \
                            '[[{"text":$approve,"url":$urlApprove},{"text":$reject,"url":$urlReject}]]')
@@ -102,5 +102,6 @@ jobs:
           curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
             -d chat_id="$TELEGRAM_CHAT_ID" \
             -d parse_mode="Markdown" \
-            -d text="$TEXT" \
-            -d reply_markup="{\"inline_keyboard\":$BUTTONS}"
+            --data-urlencode "text=$TEXT" \
+            --data-urlencode "reply_markup={\"inline_keyboard\":$BUTTONS}"
+            
