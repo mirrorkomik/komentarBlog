@@ -183,7 +183,8 @@ jobs:
                                                       -e 's/\./\\./g' \
                                                       -e 's/!/\\!/g')
           
-          TEXT="🚨 *Moderasi Komentar Baru* 🚨\n\n👤 User: ${AUTHOR}\n📌 Diskusi: ${TITLE}\n\n💬 Komentar:\n${SAFE_COMMENT}"
+          NL=$'\n'
+          TEXT="🚨 *Moderasi Komentar Baru* 🚨${NL}${NL}👤 User: ${AUTHOR}${NL}📌 Diskusi: ${TITLE}${NL}${NL}💬 Komentar:${NL}${SAFE_COMMENT}"
 
           # Inline button JSON (aman via jq)
           BUTTONS=$(jq -nc --arg approve "✅ Approve" \
