@@ -19,10 +19,6 @@ jobs:
           COMMENT_BASE64=$(echo "${{ github.event.comment.body }}" | base64 -w0)
           echo "COMMENT_BASE64=$COMMENT_BASE64" >> $GITHUB_ENV
 
-          # Decode COMMENT untuk dipakai di step selanjutnya
-          COMMENT=$(echo "$COMMENT_BASE64" | base64 --decode)
-          echo "COMMENT=$COMMENT" >> $GITHUB_ENV
-
           # COMMENT_ID
           echo "COMMENT_ID=${{ github.event.comment.id }}" >> $GITHUB_ENV
       
