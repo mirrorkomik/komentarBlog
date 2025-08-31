@@ -222,8 +222,8 @@ jobs:
                            '[
                              [
                                {"text":$moderat,"url":$urlApprove},
-                               {"text":$approve,"callback_data": ($webhook + "?data=" + $action_approve)},
-                               {"text":$reject,"callback_data": ($webhook + "?data=" + $action_delete)}
+           # Aing              {"text":$approve,"callback_data": ($webhook + "?data=" + $action_approve)},
+           # Maung             {"text":$reject,"callback_data": ($webhook + "?data=" + $action_delete)}
                              ]
                            ]')
 
