@@ -15,8 +15,8 @@ jobs:
           # Simpan AUTHOR
           echo "AUTHOR=${{ github.event.comment.user.login }}" >> $GITHUB_ENV
 
-          # Encode komentar ke base64 (aman untuk multiline)
-          COMMENT_BASE64=$(echo "${GITHUB_EVENT_PATH}" | jq -r '.comment.body' | base64 -w0)
+          # Encode komentar ke base64 (aman untuk multiline & karakter aneh)
+          COMMENT_BASE64=$(jq -r '.comment.body' "$GITHUB_EVENT_PATH" | base64 -w0)
           echo "COMMENT_BASE64=$COMMENT_BASE64" >> $GITHUB_ENV
 
           # COMMENT_ID
@@ -45,9 +45,9 @@ jobs:
       - name: Debug Variables
         run: |
           echo "AUTHOR=$AUTHOR"
-          echo "COMMENT=$COMMENT"
-          echo "DISCUSSION_NUMBER=$DISCUSSION_NUMBER"
+          echo "COMMENT_BASE64=$COMMENT_BASE64"
           echo "COMMENT_ID=$COMMENT_ID"
+          echo "DISCUSSION_NUMBER=$DISCUSSION_NUMBER"
           echo "TITLE=$TITLE"
           
       # -----------------------------
@@ -168,38 +168,40 @@ jobs:
           REPO="${{ github.repository }}"
           DISCUSSION_URL="https://github.com/$REPO/discussions/${DISCUSSION_NUMBER}#discussioncomment-${COMMENT_ID}"
 
-          # Fungsi escape MarkdownV2
+          # Escape MarkdownV2 Telegram
           escape_md_v2() {
             local text="$1"
-            text="${text//\\/\\\\}"   # \
-            text="${text//_/\\_}"     # _
-            text="${text//*/\\*}"     # *
-            text="${text//[/\\[}"     # [
-            text="${text//]/\\]}"     # ]
-            text="${text//(/\\(}"     # (
-            text="${text//)/\\)}"     # )
-            text="${text//~/\\~}"     # ~
-            text="${text//`/\\`}"     # `
-            text="${text//>/\\>}"     # >
-            text="${text//#/\\#}"     # #
-            text="${text//+/\\+}"     # +
-            text="${text//-/\\-}"     # -
-            text="${text//=/\\=}"     # =
-            text="${text//|/\\|}"     # |
-            text="${text//!/\\!}"     # !
-            text="${text//./\\.}"     # .
+            text="${text//\\/\\\\}"
+            text="${text//_/\\_}"
+            text="${text//*/\\*}"
+            text="${text//[/\\[}"
+            text="${text//]/\\]}"
+            text="${text//(/\\(}"
+            text="${text//)/\\)}"
+            text="${text//~/\\~}"
+            text="${text//`/\\`}"
+            text="${text//>/\\>}"
+            text="${text//#/\\#}"
+            text="${text//+/\\+}"
+            text="${text//-/\\-}"
+            text="${text//=/\\=}"
+            text="${text//|/\\|}"
+            text="${text//!/\\!}"
+            text="${text//./\\.}"
+            text="${text//\$/\\$}"
+            text="${text//{/\\{}"
+            text="${text//}/\\}}"
             echo "$text"
           }
       
-          NL=$'\n'
-          
           # Ambil maksimal 4000 karakter
-          COMMENT=$(jq -r '.comment.body' "$GITHUB_EVENT_PATH")
+          COMMENT=$(echo "$COMMENT_BASE64" | base64 --decode)
           COMMENT_TRIMMED=$(echo "$COMMENT" | cut -c1-4000)
-          
+
           # Apply escape
           SAFE_COMMENT=$(escape_md_v2 "$COMMENT_TRIMMED")
 
+          NL=$'\n'
           TEXT="🚨 *Moderasi Komentar Baru* 🚨${NL}${NL}👤 User: ${AUTHOR}${NL}📌 Diskusi: ${TITLE}${NL}${NL}💬 Komentar:${NL}${SAFE_COMMENT}"
 
           # Buat URL reject sepenuhnya di Bash
