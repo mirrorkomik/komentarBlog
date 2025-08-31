@@ -164,39 +164,45 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GITHUB_PAT: ${{ secrets.GITHUB_PAT }}
         run: |
-          # Ambil maksimal 4000 karakter
-          COMMENT=$(echo "$COMMENT_BASE64" | base64 --decode)
-          COMMENT_TRIMMED=$(echo "$COMMENT" | cut -c1-4000)
-
           REPO="${{ github.repository }}"
           DISCUSSION_URL="https://github.com/$REPO/discussions/${DISCUSSION_NUMBER}#discussioncomment-${COMMENT_ID}"
           URL_REJECT="https://github.com/$REPO/actions/workflows/moderasi_manual.yml/dispatches?comment_id=$COMMENT_ID&action=delete"
           
-          # Escape MarkdownV2 (Bash)
-          SAFE_COMMENT=$(echo "$COMMENT_TRIMMED" \
-            | sed -e 's/\\/\\\\/g' \
-                  -e 's/_/\\_/g' \
-                  -e 's/\*/\\*/g' \
-                  -e 's/\[/\\[/g' \
-                  -e 's/\]/\\]/g' \
-                  -e 's/(/\\(/g' \
-                  -e 's/)/\\)/g' \
-                  -e 's/~/\\~/g' \
-                  -e 's/`/\\`/g' \
-                  -e 's/>/\\>/g' \
-                  -e 's/#/\\#/g' \
-                  -e 's/+/\\+/g' \
-                  -e 's/-/\\-/g' \
-                  -e 's/=/\\=/g' \
-                  -e 's/|/\\|/g' \
-                  -e 's/{/\\{/g' \
-                  -e 's/}/\\}/g' \
-                  -e 's/\./\\./g' \
-                  -e 's/!/\\!/g' \
-                  -e 's/\$/\\$/g' \
-                  -e 's/"/\\"/g' \
-                  -e "s/'/\\'/g")
+          # Fungsi: Escape Markdown standar + truncate 4000 karakter
+          safe_markdown() {
+            local input="$1"
+            # Truncate maksimal 4000 karakter dulu
+            local truncated=$(echo "$input" | cut -c1-4000)
+            # Escape karakter Markdown
+            local escaped=$(echo "$truncated" | sed -e 's/\\/\\\\/g' \
+                                                     -e 's/_/\\_/g' \
+                                                     -e 's/\*/\\*/g' \
+                                                     -e 's/`/\\`/g' \
+                                                     -e 's/{/\\{/g' \
+                                                     -e 's/}/\\}/g' \
+                                                     -e 's/\[/\\[/g' \
+                                                     -e 's/\]/\\]/g' \
+                                                     -e 's/(/\\(/g' \
+                                                     -e 's/)/\\)/g' \
+                                                     -e 's/#/\\#/g' \
+                                                     -e 's/!/\\!/g' \
+                                                     -e 's/\./\\./g' \
+                                                     -e 's/-/\\-/g' \
+                                                     -e 's/\+/\\+/g' \
+                                                     -e 's/>/\\>/g' \
+                                                     -e 's/~ /\\~/g' \
+                                                     -e 's/\$/\\$/g' \
+                                                     -e 's/%/\\%/g' \
+                                                     -e 's/"/\\"/g' \
+                                                     -e "s/'/\\'/g")
+            echo "$escaped"
+          }
+
+          # Decode komentar Base64
+          COMMENT=$(echo "$COMMENT_BASE64" | base64 --decode)
+          SAFE_COMMENT=$(safe_markdown "$COMMENT")
 
           NL=$'\n'
           TEXT="🚨 *Moderasi Komentar Baru* 🚨${NL}${NL}👤 User: ${AUTHOR}${NL}📌 Diskusi: ${TITLE}${NL}${NL}💬 Komentar:${NL}${SAFE_COMMENT}"
