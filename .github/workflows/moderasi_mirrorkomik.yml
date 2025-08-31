@@ -57,14 +57,14 @@ jobs:
                 await github.rest.discussions.lock({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
-                  discussion_number: discussion_number,
+                  discussion_number,
                   lock_reason: "pending moderation"
                 });
               } catch (error) {
-                  console.log("Lock failed:", error.message);
+                console.log("Lock failed:", error.message);
               }
             } else {
-              console.log("No valid discussion_number found, skipping lock");
+              console.log("No valid discussion_number, skipping lock");
             }
 
       # -----------------------------
