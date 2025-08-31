@@ -216,7 +216,7 @@ jobs:
                            --arg urlApprove "$DISCUSSION_URL" \
                            '[
                              [
-                               {"text":$moderat,"url":$urlApprove"},
+                               {"text":$moderat,"url":$urlApprove},
                                {"text":$approve,"callback_data": ($webhook + "?" + "{\"comment_id\":" + ($comment_id|tostring) + ",\"action\":\"approve\"}")},
                                {"text":$reject,"callback_data": ($webhook + "?" + "{\"comment_id\":" + ($comment_id|tostring) + ",\"action\":\"delete\"}")}
                              ]
