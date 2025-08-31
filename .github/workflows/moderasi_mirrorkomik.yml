@@ -16,7 +16,7 @@ jobs:
           echo "AUTHOR=${{ github.event.comment.user.login }}" >> $GITHUB_ENV
 
           # Encode komentar ke base64 (aman untuk multiline)
-          COMMENT_BASE64=$(echo "${{ github.event.comment.body }}" | base64 -w0)
+          COMMENT_BASE64=$(echo "${GITHUB_EVENT_PATH}" | jq -r '.comment.body' | base64 -w0)
           echo "COMMENT_BASE64=$COMMENT_BASE64" >> $GITHUB_ENV
 
           # COMMENT_ID
