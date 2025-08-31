@@ -45,18 +45,27 @@ jobs:
           echo "TITLE=$TITLE"
           
       # -----------------------------
-      - name: Lock Root Discussion (Pending)
-        if: github.event.discussion != null
+      - name: Lock Diskusi (Pending)
+        if: ${{ github.event.comment.in_reply_to_id == null }}
         uses: actions/github-script@v7
         with:
           script: |
-            console.log("Locking discussion #"+context.payload.discussion.number);
-            await github.rest.discussions.lock({
-                discussion_number: context.payload.discussion.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                lock_reason: "pending moderation"
-            });
+            const discussion_number = parseInt(process.env.DISCUSSION_NUMBER);
+            if (!isNaN(discussion_number)) {
+              console.log(`Locking discussion #${discussion_number}`);
+              try {
+                await github.rest.discussions.lock({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  discussion_number: discussion_number,
+                  lock_reason: "pending moderation"
+                });
+              } catch (error) {
+                  console.log("Lock failed:", error.message);
+              }
+            } else {
+              console.log("No valid discussion_number found, skipping lock");
+            }
 
       # -----------------------------
       - name: Filter Moderasi
@@ -67,15 +76,21 @@ jobs:
           WHITELIST_WORDS="mantap,terima kasih,approved"
           BADWORDS="anjing,bangsat,kontol,idiot"
 
+          # Ubah komentar jadi lowercase supaya case-insensitive
+          COMMENT_LOWER=$(echo "$COMMENT" | tr '[:upper:]' '[:lower:]')
+          AUTHOR_LOWER=$(echo "$AUTHOR" | tr '[:upper:]' '[:lower:]')
+          
           # Whitelist user
-          if echo "$WHITELIST_USER" | grep -iq "$AUTHOR"; then
-            echo "status=approve" >> $GITHUB_OUTPUT
-            exit 0
-          fi
+          for user in $(echo $WHITELIST_USER | tr ',' ' '); do
+            if echo "$AUTHOR" | grep -iq "$user"; then
+              echo "status=approve" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+          done
 
           # Whitelist kata
           for word in $(echo $WHITELIST_WORDS | tr ',' ' '); do
-            if echo "$COMMENT" | grep -iq "$word"; then
+            if echo "$COMMENT_LOWER" | grep -iq "$word"; then
               echo "status=approve" >> $GITHUB_OUTPUT
               exit 0
             fi
@@ -83,7 +98,7 @@ jobs:
 
           # Badword → reject
           for bad in $(echo $BADWORDS | tr ',' ' '); do
-            if echo "$COMMENT" | grep -iq "$bad"; then
+            if echo "$COMMENT_LOWER" | grep -iq "$bad"; then
               echo "status=reject" >> $GITHUB_OUTPUT
               exit 0
             fi
@@ -94,20 +109,26 @@ jobs:
 
       # -----------------------------
       - name: Auto Approve (Root Comment Only)
-        if: steps.filter.outputs.status == 'approve'
+        if: steps.filter.outputs.status == 'approve' && github.event.comment.in_reply_to_id == null
         uses: actions/github-script@v7
         with:
           script: |
-            if (context.payload.discussion) {
-                // Root comment → unlock
+            const discussion_number = parseInt(process.env.DISCUSSION_NUMBER);
+            if (!isNaN(discussion_number)) {
+              // Root comment → unlock
+              console.log(`Unlocking discussion #${discussion_number}`);
+              try {
                 await github.rest.discussions.unlock({
-                    discussion_number: context.payload.discussion.number,
-                    owner: context.repo.owner,
-                    repo: context.repo.repo
+                  discussion_number: discussion_number,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo
                 });
+              } catch (error) {
+                  console.log("Auto approve failed:", error.message);
+              }
             } else {
-                // Reply comment → skip unlock
-                console.log("Reply comment, skipping unlock");
+              // Reply comment → skip unlock
+              console.log("No valid discussion_number, skipping unlock");
             }
 
       # -----------------------------
@@ -116,14 +137,16 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            if (context.payload.comment.id) {
-                await github.rest.discussionComments.deleteComment({
-                    discussion_comment_id: context.payload.comment.id,
-                    owner: context.repo.owner,
-                    repo: context.repo.repo
-                });
+            const comment_id = parseInt(process.env.COMMENT_ID);
+            if (!isNaN(comment_id)) {
+              console.log(`Deleting comment ID ${comment_id}`);
+              await github.rest.discussionComments.deleteComment({
+                  discussion_comment_id: comment_id,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo
+              });
             } else {
-                console.log("No comment id, cannot delete");
+              console.log("No valid comment_id, cannot delete");
             }
 
       # -----------------------------
