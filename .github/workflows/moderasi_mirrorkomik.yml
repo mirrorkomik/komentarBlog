@@ -176,7 +176,7 @@ jobs:
           # Escape MarkdownV2 
           escape_md_v2() {
             local text="$1"
-            text="${text//\\/\\\\}"  # backslash
+            text="${text//\\/\\\\}"
             text="${text//_/\\_}"
             text="${text//*/\\*}"
             text="${text//[/\\[}"
@@ -189,15 +189,15 @@ jobs:
             text="${text//#/\\#}"
             text="${text//+/\\+}"
             text="${text//-/\\-}"
-            text="${text//= /\\=}"
+            text="${text//=/\\=}"
             text="${text//|/\\|}"
             text="${text//{/\\{}"
             text="${text//}/\\}}"
             text="${text//./\\.}"
             text="${text//!/\\!}"
             text="${text//$/\\$}"
-            text="${text//\"/\\\"}"  # escape double quote
-            text="${text//\'/\\\'}"  # escape single quote
+            text="${text//\"/\\\"}"
+            text="${text//\'/\\\'}"
             echo "$text"
           }
           
