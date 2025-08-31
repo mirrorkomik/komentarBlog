@@ -159,10 +159,13 @@ jobs:
           REPO="${{ github.repository }}"
           DISCUSSION_URL="https://github.com/$REPO/discussions/${DISCUSSION_NUMBER}#discussioncomment-${COMMENT_ID}"
 
-          # Encode komentar untuk menghindari Markdown error
-          SAFE_COMMENT=$(echo "$COMMENT" | cut -c1-4000 | sed 's/[*_\[\]()~`>#+=|{}.!-]/\\&/g')
-      
-          TEXT="🚨 *Moderasi Komentar Baru* 🚨%0A%0A👤 User: ${AUTHOR}%0A📌 Diskusi: ${TITLE}%0A%0A💬 Komentar:%0A${SAFE_COMMENT}%0A%0A"
+          # Ambil maksimal 4000 karakter
+          COMMENT_TRIMMED=$(echo "$COMMENT" | cut -c1-4000)
+
+          # Escape untuk MarkdownV2 Telegram
+          SAFE_COMMENT=$(jq -Rn --arg text "$COMMENT_TRIMMED" '$text | gsub("([_\\*\\[\\]\\(\\)~`>#+=|{}.!-])"; "\\\\\1")')
+
+          TEXT="🚨 *Moderasi Komentar Baru* 🚨\n\n👤 User: ${AUTHOR}\n📌 Diskusi: ${TITLE}\n\n💬 Komentar:\n${SAFE_COMMENT}"
 
           # Inline button JSON (aman via jq)
           BUTTONS=$(jq -nc --arg approve "✅ Approve" \
