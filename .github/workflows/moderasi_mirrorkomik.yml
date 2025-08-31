@@ -51,10 +51,37 @@ jobs:
           echo "TITLE=$TITLE"
           
       # -----------------------------
+      - name: Hide Reply (non-owner, non-whitelist)
+        if: ${{ github.event.comment.in_reply_to_id != null }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GH_PAT }}
+          script: |
+            const author = process.env.AUTHOR.toLowerCase();
+            const whitelist = ['adminuser1','adminuser2', context.repo.owner.toLowerCase()];
+
+            if (!whitelist.includes(author)) {
+              const comment_id = parseInt(process.env.COMMENT_ID);
+              if (!isNaN(comment_id)) {
+                console.log(`Hiding reply comment ${comment_id}`);
+                await github.rest.discussionComments.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  discussion_comment_id: comment_id,
+                  body: process.env.COMMENT_BASE64 ? Buffer.from(process.env.COMMENT_BASE64, 'base64').toString('utf8') : '',
+                  hidden: true
+                });
+              }
+            } else {
+              console.log("Author is owner/whitelist → do not hide");
+            }
+
+      # -----------------------------
       - name: Lock Diskusi (Pending) hanya untuk root comment
         if: ${{ github.event.comment.in_reply_to_id == null }}
         uses: actions/github-script@v7
         with:
+          github-token: ${{ secrets.GH_PAT }}
           script: |
             const discussion_number = parseInt(process.env.DISCUSSION_NUMBER);
             if (!isNaN(discussion_number)) {
@@ -70,8 +97,6 @@ jobs:
               } catch (error) {
                 console.log("Lock failed:", error.message);
               }
-            } else {
-              console.log("No valid discussion_number, skipping lock");
             }
 
       # -----------------------------
@@ -150,6 +175,7 @@ jobs:
         if: steps.filter.outputs.status == 'reject'
         uses: actions/github-script@v7
         with:
+          github-token: ${{ secrets.GH_PAT }}
           script: |
             const comment_id = parseInt(process.env.COMMENT_ID);
             if (!isNaN(comment_id)) {
@@ -159,33 +185,6 @@ jobs:
                   owner: context.repo.owner,
                   repo: context.repo.repo
               });
-            } else {
-              console.log("No valid comment_id, cannot delete");
-            }
-            
-      # -----------------------------
-      - name: Auto Hide Reply Comments
-        if: github.event.comment.in_reply_to_id != null
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const comment_id = parseInt(process.env.COMMENT_ID);
-            
-            if (!isNaN(comment_id)) {
-              console.log(`Hiding reply comment ID ${comment_id} temporarily`);
-              try {
-                await github.rest.discussions.updateComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  discussion_comment_id: comment_id,
-                  body: github.event.comment.body,
-                  hidden: true
-                });
-              } catch (error) {
-                console.log("Auto hide failed:", error.message);
-              }
-            } else {
-              console.log("No valid comment_id, cannot hide");
             }
 
       # -----------------------------
