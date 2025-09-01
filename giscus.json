@@ -1,8 +1,12 @@
 {
   "origins": [
     "https://komikidn.com",
+    "https://www.komikidn.com",
     "https://mirrorkomik.id",
+    "https://www.mirrorkomik.id",
     "https://mirrorkomik.info",
-    "https://mirrorkomik.site"
+    "https://www.mirrorkomik.info",
+    "https://mirrorkomik.site",
+    "https://www.mirrorkomik.site"
   ]
 }
